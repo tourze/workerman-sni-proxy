@@ -4,6 +4,8 @@ namespace Tourze\Workerman\SNIProxy;
 
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Tourze\Workerman\ConnectionPipe\Container as ConnectionPipeContainer;
+use Tourze\Workerman\ConnectionPipe\PipeFactory;
 use Workerman\Connection\TcpConnection;
 use Workerman\Worker;
 
@@ -64,6 +66,9 @@ class SniProxyWorker extends Worker
      */
     public function onWorkerStart(Worker $worker): void
     {
+        // 设置ConnectionPipe的日志记录器
+        ConnectionPipeContainer::setLogger($this->logger);
+
         $this->logger->info(sprintf(
             'SNI proxy worker started, listening on %s',
             $worker->getSocketName()
@@ -185,12 +190,18 @@ class SniProxyWorker extends Worker
             $target
         );
 
-        // 转发数据
-        $connection->pipe($targetConnection);
-        $targetConnection->pipe($connection);
+        // 使用ConnectionPipe创建双向管道
+
+        // 创建从客户端到目标服务器的管道
+        $clientToTarget = PipeFactory::createTcpToTcp($connection, $targetConnection);
+        $clientToTarget->pipe();
+
+        // 创建从目标服务器到客户端的管道
+        $targetToClient = PipeFactory::createTcpToTcp($targetConnection, $connection);
+        $targetToClient->pipe();
 
         // 发送已缓冲的数据
-        $targetConnection->send($data);
+        $clientToTarget->forward($data);
         $this->logger->debug(sprintf(
             '发送缓冲数据 (%d 字节) 到 %s:%d',
             strlen($data),

@@ -37,7 +37,7 @@ if ($allowAll) {
 $worker = new SniProxyWorker('0.0.0.0', 8443, $allowedHosts, $logger);
 
 // 设置进程数
-$worker->count = 4;
+$worker->count = 1;
 
 // 启用调试模式
 Worker::$logFile = './workerman.log';
