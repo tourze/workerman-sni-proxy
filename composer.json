@@ -6,7 +6,7 @@
     "php": "^8.1",
     "workerman/workerman": "^5.1",
     "psr/log": "^3|^2|^1",
-    "workerman-connection-pipe": "0.0.*"
+    "tourze/workerman-connection-pipe": "0.0.*"
   },
   "require-dev": {
     "monolog/monolog": "^3.0"
