@@ -9,11 +9,15 @@
     "tourze/workerman-connection-pipe": "0.0.*"
   },
   "require-dev": {
-    "monolog/monolog": "^3.0"
+    "monolog/monolog": "^3.0",
+    "phpstan/phpstan": "^2.1"
   },
   "autoload": {
     "psr-4": {
       "Tourze\\Workerman\\SNIProxy\\": "src"
     }
+  },
+  "scripts": {
+    "phpstan": "phpstan analyse src -l 1"
   }
 }
