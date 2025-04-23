@@ -9,7 +9,7 @@
     "tourze/workerman-connection-pipe": "^0.0.3"
   },
   "require-dev": {
-    "monolog/monolog": "^3.0",
+    "monolog/monolog": "^3.1",
     "phpstan/phpstan": "^2.1"
   },
   "autoload": {
