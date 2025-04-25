@@ -16,8 +16,5 @@
     "psr-4": {
       "Tourze\\Workerman\\SNIProxy\\": "src"
     }
-  },
-  "scripts": {
-    "phpstan": "phpstan analyse src -l 1"
   }
 }
