@@ -4,6 +4,7 @@
   "license": "MIT",
   "require": {
     "php": "^8.1",
+    "monolog/monolog": "^3.1",
     "psr/log": "^3|^2|^1",
     "tourze/workerman-connection-pipe": "^0.0.3",
     "workerman/workerman": "^5.1"
