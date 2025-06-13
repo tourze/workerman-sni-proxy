@@ -67,7 +67,7 @@ class SniProxyWorker extends Worker
     public function onWorkerStart(Worker $worker): void
     {
         // 设置ConnectionPipe的日志记录器
-        ConnectionPipeContainer::setLogger($this->logger);
+        ConnectionPipeContainer::getInstance()->setLogger($this->logger);
 
         $this->logger->info(sprintf(
             'SNI proxy worker started, listening on %s',
