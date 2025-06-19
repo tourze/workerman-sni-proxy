@@ -27,11 +27,8 @@ $allowedHosts = [
     // 可以根据需要添加或删除
 ];
 
-// 是否允许所有主机（测试用）
-$allowAll = true;
-if ($allowAll) {
-    $allowedHosts = [];
-}
+// 允许所有主机（测试用）
+$allowedHosts = [];
 
 // 创建一个SNI代理worker，使用非特权端口8443（避免需要root权限）
 $worker = new SniProxyWorker('0.0.0.0', 8443, $allowedHosts, $logger);

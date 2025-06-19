@@ -161,7 +161,7 @@ class SniProxyWorker extends Worker
 
         // 解析SNI主机名
         $sniHost = $this->sniParser->parseSNI($data);
-        if (!$sniHost) {
+        if ($sniHost === null || $sniHost === '') {
             $this->logger->warning(sprintf('无法从 %s 解析SNI主机名', $remoteAddress));
             $connection->close();
             return;
