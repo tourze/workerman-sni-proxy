@@ -6,7 +6,12 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/tourze/workerman-sni-proxy.svg?style=flat-square)](https://packagist.org/packages/tourze/workerman-sni-proxy)
 [![License](https://img.shields.io/github/license/tourze/workerman-sni-proxy.svg?style=flat-square)](https://github.com/tourze/workerman-sni-proxy/blob/master/LICENSE)
 
-基于 [Workerman](https://github.com/walkor/workerman) 的高性能 SNI（服务器名称指示）代理服务器。
+[![PHP Version](https://img.shields.io/packagist/php-v/tourze/workerman-sni-proxy.svg?style=flat-square)](https://packagist.org/packages/tourze/workerman-sni-proxy)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/tourze/workerman-sni-proxy/ci.yml?style=flat-square)](https://github.com/tourze/workerman-sni-proxy/actions)
+[![Code Coverage](https://img.shields.io/codecov/c/github/tourze/workerman-sni-proxy.svg?style=flat-square)](https://codecov.io/gh/tourze/workerman-sni-proxy)
+
+基于 [Workerman](https://github.com/walkor/workerman) 的高性能 SNI
+（服务器名称指示）代理服务器。
 
 ## 功能特点
 
@@ -18,17 +23,17 @@
 - 集成 PSR 兼容的日志记录器（包括 Monolog）
 - 最小化依赖，轻量级设计以获得最佳性能
 
-## 安装
-
-```bash
-composer require tourze/workerman-sni-proxy
-```
-
 ## 系统要求
 
 - PHP 8.1 或更高版本
 - Workerman 5.1 或更高版本
 - PSR 兼容的日志记录器（可选，推荐使用 Monolog）
+
+## 安装
+
+```bash
+composer require tourze/workerman-sni-proxy
+```
 
 ## 快速开始
 
@@ -58,6 +63,7 @@ Worker::runAll();
 <?php
 
 use Monolog\Handler\StreamHandler;
+use Monolog\Level;
 use Monolog\Logger;
 use Tourze\Workerman\SNIProxy\SniProxyWorker;
 use Workerman\Worker;
@@ -66,7 +72,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 // 初始化日志记录器
 $logger = new Logger('sni-proxy');
-$logger->pushHandler(new StreamHandler('php://stdout', Logger::DEBUG));
+$logger->pushHandler(new StreamHandler('php://stdout', Level::Debug));
 
 // 允许的主机白名单（格式："主机名:端口"）
 $allowedHosts = [
@@ -84,9 +90,9 @@ $worker->count = 4;
 Worker::runAll();
 ```
 
-## API 文档
+## 配置说明
 
-### SniProxyWorker
+### SniProxyWorker 构造函数
 
 ```php
 /**
@@ -101,6 +107,70 @@ public function __construct(
     array $remoteHosts = [],
     ?LoggerInterface $logger = null
 )
+```
+
+### 配置选项
+
+- **bindHost**: 代理服务器绑定的 IP 地址（默认：'0.0.0.0'）
+- **bindPort**: 监听端口（默认：443）
+- **remoteHosts**: 允许的目标主机数组，格式为 "主机名:端口"
+- **logger**: PSR-3 兼容的日志记录器，用于调试和监控
+
+## 高级用法
+
+### 自定义远程目标解析
+
+```php
+use Tourze\Workerman\SNIProxy\RemoteTarget;
+
+// 自定义目标解析逻辑
+$worker = new SniProxyWorker('0.0.0.0', 8443);
+$worker->onConnect = function($connection) {
+    // 自定义连接处理
+};
+```
+
+### 生产环境部署
+
+```php
+// daemon.php
+<?php
+use Workerman\Worker;
+use Tourze\Workerman\SNIProxy\SniProxyWorker;
+
+require_once __DIR__ . '/vendor/autoload.php';
+
+// 以守护进程运行
+Worker::$daemonize = true;
+Worker::$pidFile = '/var/run/sni-proxy.pid';
+Worker::$logFile = '/var/log/sni-proxy.log';
+
+$worker = new SniProxyWorker('0.0.0.0', 443);
+$worker->count = 8; // 8 个进程
+
+Worker::runAll();
+```
+
+### 监控和指标
+
+```php
+use Monolog\Handler\StreamHandler;
+use Monolog\Level;
+use Monolog\Logger;
+
+$logger = new Logger('sni-proxy');
+$logger->pushHandler(new StreamHandler('/var/log/sni-proxy.log', Level::Info));
+
+$worker = new SniProxyWorker('0.0.0.0', 8443, [], $logger);
+
+// 监控连接
+$worker->onConnect = function($connection) use ($logger) {
+    $logger->info('来自 ' . $connection->getRemoteIp() . ' 的新连接');
+};
+
+$worker->onClose = function($connection) use ($logger) {
+    $logger->info('来自 ' . $connection->getRemoteIp() . ' 的连接已关闭');
+};
 ```
 
 ## 使用场景

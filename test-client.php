@@ -1,18 +1,20 @@
 <?php
+
+declare(strict_types=1);
+
 /**
  * SNI代理测试客户端
  *
  * 此脚本用于测试SNI代理服务器是否正常工作
  * 使用方法：php test-client.php example.com [端口]
  */
-
 if (!isset($argv[1])) {
     echo "使用方法: php test-client.php example.com [端口]\n";
     exit(1);
 }
 
 $host = $argv[1];
-$port = isset($argv[2]) ? (int)$argv[2] : 8443;
+$port = isset($argv[2]) ? (int) $argv[2] : 8443;
 
 echo "测试连接到 {$host}:{$port}...\n";
 
@@ -23,7 +25,7 @@ $context = stream_context_create([
         'verify_peer_name' => false,
         'SNI_enabled' => true,
         'peer_name' => $host,
-    ]
+    ],
 ]);
 
 // 尝试连接
@@ -37,7 +39,7 @@ $socket = @stream_socket_client(
 );
 
 // 处理连接结果
-if (!$socket) {
+if (false === $socket) {
     echo "错误: 无法连接到代理服务器 ({$errno}: {$errstr})\n";
     exit(1);
 }
@@ -49,10 +51,12 @@ echo "SNI主机名: {$host}\n";
 $cert = stream_context_get_options($context)['ssl']['peer_certificate'] ?? null;
 if ($cert) {
     $certInfo = openssl_x509_parse($cert);
-    echo "服务器证书信息:\n";
-    echo "  - 颁发给: " . ($certInfo['subject']['CN'] ?? '未知') . "\n";
-    echo "  - 颁发者: " . ($certInfo['issuer']['CN'] ?? '未知') . "\n";
-    echo "  - 有效期至: " . date('Y-m-d H:i:s', $certInfo['validTo_time_t']) . "\n";
+    if (false !== $certInfo) {
+        echo "服务器证书信息:\n";
+        echo '  - 颁发给: ' . ($certInfo['subject']['CN'] ?? '未知') . "\n";
+        echo '  - 颁发者: ' . ($certInfo['issuer']['CN'] ?? '未知') . "\n";
+        echo '  - 有效期至: ' . date('Y-m-d H:i:s', $certInfo['validTo_time_t']) . "\n";
+    }
 }
 
 // 发送简单的HTTP请求
@@ -71,11 +75,11 @@ $lineCount = 0;
 // 只读取响应头
 while (!feof($socket) && !$headerComplete && $lineCount < 20) {
     $line = fgets($socket);
-    if ($line === "\r\n" || $line === "") {
+    if ("\r\n" === $line || '' === $line) {
         $headerComplete = true;
     } else {
         $responseHeader .= $line;
-        $lineCount++;
+        ++$lineCount;
     }
 }
 

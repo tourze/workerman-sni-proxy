@@ -1,10 +1,14 @@
 <?php
+
+declare(strict_types=1);
+
 /**
- * 注意：使用此文件需要先安装Monolog
- * composer require monolog/monolog
+ * 注意：使用此文件需要先安装 Monolog
+ * 运行命令：composer require monolog/monolog
  */
 
 use Monolog\Handler\StreamHandler;
+use Monolog\Level;
 use Monolog\Logger;
 use Tourze\Workerman\SNIProxy\SniProxyWorker;
 use Workerman\Worker;
@@ -16,14 +20,14 @@ date_default_timezone_set('Asia/Shanghai');
 
 // 初始化日志
 $logger = new Logger('sni-proxy');
-$logger->pushHandler(new StreamHandler('php://stdout', Logger::DEBUG));
+$logger->pushHandler(new StreamHandler('php://stdout', Level::Debug));
 
 // 允许的远程主机列表，如果为空则允许所有
 $allowedHosts = [
     // 格式: "主机名:端口"
-    "www.baidu.com:443",
-    "www.163.com:443",
-    "www.qq.com:443",
+    'www.baidu.com:443',
+    'www.163.com:443',
+    'www.qq.com:443',
     // 可以根据需要添加或删除
 ];
 

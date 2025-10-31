@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tourze\Workerman\SNIProxy;
 
 use Psr\Log\LoggerInterface;
@@ -34,16 +36,16 @@ class SniProxyWorker extends Worker
     /**
      * 构造函数
      *
-     * @param string $bindHost 绑定主机地址
-     * @param int $bindPort 绑定端口
-     * @param array $remoteHosts 远程主机列表，格式如 ["www.baidu.com:443", "ip.sb:443"]
-     * @param LoggerInterface|null $logger 日志记录器
+     * @param string               $bindHost    绑定主机地址
+     * @param int                  $bindPort    绑定端口
+     * @param string[]             $remoteHosts 远程主机列表，格式如 ["www.baidu.com:443", "ip.sb:443"]
+     * @param LoggerInterface|null $logger      日志记录器
      */
     public function __construct(
         string $bindHost = '0.0.0.0',
         int $bindPort = 443,
         array $remoteHosts = [],
-        ?LoggerInterface $logger = null
+        ?LoggerInterface $logger = null,
     ) {
         $this->config = new ProxyConfiguration($bindHost, $bindPort, $remoteHosts);
         $this->logger = $logger ?? new NullLogger();
@@ -75,7 +77,7 @@ class SniProxyWorker extends Worker
         ));
 
         $remoteHosts = $this->config->getRemoteHosts();
-        if (!empty($remoteHosts)) {
+        if ([] !== $remoteHosts) {
             $this->logger->info(sprintf(
                 '配置的远程主机: %s',
                 implode(', ', $remoteHosts)
@@ -103,7 +105,7 @@ class SniProxyWorker extends Worker
     /**
      * 连接错误回调
      */
-    public function onError(TcpConnection $connection, $code, $msg): void
+    public function onError(TcpConnection $connection, int $code, string $msg): void
     {
         $remoteAddress = $connection->getRemoteAddress();
         $this->logger->error(sprintf(
@@ -124,13 +126,16 @@ class SniProxyWorker extends Worker
         // 检查是否已建立目标连接
         if ($this->connectionManager->hasTargetConnection($connection)) {
             $targetConnection = $this->connectionManager->getTargetConnection($connection);
-            $targetConnection->send($buffer);
-            $this->logger->debug(sprintf(
-                '从 %s 转发 %d 字节到 %s',
-                $remoteAddress,
-                strlen($buffer),
-                $targetConnection->getRemoteAddress()
-            ));
+            if (null !== $targetConnection) {
+                $targetConnection->send($buffer);
+                $this->logger->debug(sprintf(
+                    '从 %s 转发 %d 字节到 %s',
+                    $remoteAddress,
+                    strlen($buffer),
+                    $targetConnection->getRemoteAddress()
+                ));
+            }
+
             return;
         }
 
@@ -144,6 +149,7 @@ class SniProxyWorker extends Worker
                 $remoteAddress,
                 strlen($data)
             ));
+
             return;
         }
 
@@ -156,14 +162,16 @@ class SniProxyWorker extends Worker
                 $recordLength,
                 strlen($data)
             ));
+
             return;
         }
 
         // 解析SNI主机名
         $sniHost = $this->sniParser->parseSNI($data);
-        if ($sniHost === null || $sniHost === '') {
+        if (null === $sniHost || '' === $sniHost) {
             $this->logger->warning(sprintf('无法从 %s 解析SNI主机名', $remoteAddress));
             $connection->close();
+
             return;
         }
 
@@ -175,12 +183,13 @@ class SniProxyWorker extends Worker
 
         // 检查主机是否在允许列表中
         $target = $this->config->getAllowedTarget($sniHost);
-        if ($target === null) {
+        if (null === $target) {
             $this->logger->warning(sprintf(
                 '主机 %s 不在允许列表中，连接将被关闭',
                 $sniHost
             ));
             $connection->close();
+
             return;
         }
 

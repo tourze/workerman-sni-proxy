@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tourze\Workerman\SNIProxy;
 
 class ProxyConfiguration
@@ -19,26 +21,15 @@ class ProxyConfiguration
     private array $hostTargetMap;
 
     /**
-     * 绑定主机
-     */
-    private readonly string $bindHost;
-
-    /**
-     * 绑定端口
-     */
-    private readonly int $bindPort;
-
-    /**
      * 构造函数
+     *
+     * @param string[] $remoteHosts
      */
     public function __construct(
-        string $bindHost = '0.0.0.0',
-        int $bindPort = 443,
-        array $remoteHosts = []
+        private readonly string $bindHost = '0.0.0.0',
+        private readonly int $bindPort = 443,
+        array $remoteHosts = [],
     ) {
-        $this->bindHost = $bindHost;
-        $this->bindPort = $bindPort;
-
         // 处理远程主机配置
         $this->remoteTargets = [];
         $this->hostTargetMap = [];
@@ -85,6 +76,7 @@ class ProxyConfiguration
         foreach ($this->remoteTargets as $target) {
             $result[] = "{$target->getHost()}:{$target->getPort()}";
         }
+
         return $result;
     }
 
@@ -92,11 +84,12 @@ class ProxyConfiguration
      * 检查主机是否在允许列表中
      *
      * @param string $host 主机名
+     *
      * @return RemoteTarget|null 如果允许则返回目标对象，否则返回null
      */
     public function getAllowedTarget(string $host): ?RemoteTarget
     {
-        if (empty($this->remoteTargets)) {
+        if ([] === $this->remoteTargets) {
             // 如果未设置远程主机，默认允许所有
             return new RemoteTarget($host);
         }

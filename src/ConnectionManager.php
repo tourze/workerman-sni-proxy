@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tourze\Workerman\SNIProxy;
 
 use Psr\Log\LoggerInterface;
-use WeakMap;
 use Workerman\Connection\AsyncTcpConnection;
 use Workerman\Connection\TcpConnection;
 
@@ -11,27 +12,24 @@ class ConnectionManager
 {
     /**
      * 数据缓冲区
+     * @var \WeakMap<TcpConnection, string>
      */
-    private readonly WeakMap $dataBuffers;
+    private readonly \WeakMap $dataBuffers;
 
     /**
      * 目标连接映射
+     * @var \WeakMap<TcpConnection, AsyncTcpConnection>
      */
-    private readonly WeakMap $targetConnections;
-
-    /**
-     * 日志记录器
-     */
-    private readonly LoggerInterface $logger;
+    private readonly \WeakMap $targetConnections;
 
     /**
      * 构造函数
      */
-    public function __construct(LoggerInterface $logger)
-    {
-        $this->dataBuffers = new WeakMap();
-        $this->targetConnections = new WeakMap();
-        $this->logger = $logger;
+    public function __construct(
+        private readonly LoggerInterface $logger,
+    ) {
+        $this->dataBuffers = new \WeakMap();
+        $this->targetConnections = new \WeakMap();
     }
 
     /**
@@ -64,6 +62,7 @@ class ConnectionManager
         $buffer = $this->getDataBuffer($connection);
         $buffer .= $data;
         $this->dataBuffers->offsetSet($connection, $buffer);
+
         return $buffer;
     }
 
@@ -80,7 +79,9 @@ class ConnectionManager
      */
     public function getTargetConnection(TcpConnection $connection): ?AsyncTcpConnection
     {
-        return $this->targetConnections->offsetExists($connection) ? $this->targetConnections->offsetGet($connection) : null;
+        return $this->targetConnections->offsetExists($connection)
+            ? $this->targetConnections->offsetGet($connection)
+            : null;
     }
 
     /**
@@ -88,7 +89,7 @@ class ConnectionManager
      */
     public function createTargetConnection(
         TcpConnection $connection,
-        RemoteTarget $target
+        RemoteTarget $target,
     ): AsyncTcpConnection {
         $remoteAddress = $connection->getRemoteAddress();
         $targetHost = $target->getHost();
@@ -99,7 +100,11 @@ class ConnectionManager
         $this->targetConnections->offsetSet($connection, $targetConnection);
 
         // 设置目标连接的回调
-        $targetConnection->onConnect = function($targetConnection) use ($remoteAddress, $targetHost, $targetPort) {
+        $targetConnection->onConnect = function (AsyncTcpConnection $targetConnection) use (
+            $remoteAddress,
+            $targetHost,
+            $targetPort
+        ): void {
             $this->logger->info(sprintf(
                 '目标连接已建立: %s -> %s:%d',
                 $remoteAddress,
@@ -108,7 +113,15 @@ class ConnectionManager
             ));
         };
 
-        $targetConnection->onError = function($targetConnection, $code, $msg) use ($remoteAddress, $targetHost, $targetPort) {
+        $targetConnection->onError = function (
+            AsyncTcpConnection $targetConnection,
+            int $code,
+            string $msg,
+        ) use (
+            $remoteAddress,
+            $targetHost,
+            $targetPort
+        ): void {
             $this->logger->error(sprintf(
                 '目标连接错误: %s -> %s:%d [%d] %s',
                 $remoteAddress,
@@ -120,7 +133,11 @@ class ConnectionManager
             $targetConnection->close();
         };
 
-        $targetConnection->onClose = function($targetConnection) use ($remoteAddress, $targetHost, $targetPort) {
+        $targetConnection->onClose = function (AsyncTcpConnection $targetConnection) use (
+            $remoteAddress,
+            $targetHost,
+            $targetPort
+        ): void {
             $this->logger->info(sprintf(
                 '目标连接关闭: %s -> %s:%d',
                 $remoteAddress,

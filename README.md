@@ -6,7 +6,12 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/tourze/workerman-sni-proxy.svg?style=flat-square)](https://packagist.org/packages/tourze/workerman-sni-proxy)
 [![License](https://img.shields.io/github/license/tourze/workerman-sni-proxy.svg?style=flat-square)](https://github.com/tourze/workerman-sni-proxy/blob/master/LICENSE)
 
-A high-performance SNI (Server Name Indication) proxy server based on [Workerman](https://github.com/walkor/workerman).
+[![PHP Version](https://img.shields.io/packagist/php-v/tourze/workerman-sni-proxy.svg?style=flat-square)](https://packagist.org/packages/tourze/workerman-sni-proxy)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/tourze/workerman-sni-proxy/ci.yml?style=flat-square)](https://github.com/tourze/workerman-sni-proxy/actions)
+[![Code Coverage](https://img.shields.io/codecov/c/github/tourze/workerman-sni-proxy.svg?style=flat-square)](https://codecov.io/gh/tourze/workerman-sni-proxy)
+
+A high-performance SNI (Server Name Indication) proxy server based on 
+[Workerman](https://github.com/walkor/workerman).
 
 ## Features
 
@@ -18,17 +23,17 @@ A high-performance SNI (Server Name Indication) proxy server based on [Workerman
 - Integrates with PSR-compatible loggers (including Monolog)
 - Minimal dependencies, lightweight design for optimal performance
 
-## Installation
-
-```bash
-composer require tourze/workerman-sni-proxy
-```
-
 ## Requirements
 
 - PHP 8.1 or higher
 - Workerman 5.1 or higher
 - PSR-compatible logger (optional, Monolog recommended)
+
+## Installation
+
+```bash
+composer require tourze/workerman-sni-proxy
+```
 
 ## Quick Start
 
@@ -58,6 +63,7 @@ Worker::runAll();
 <?php
 
 use Monolog\Handler\StreamHandler;
+use Monolog\Level;
 use Monolog\Logger;
 use Tourze\Workerman\SNIProxy\SniProxyWorker;
 use Workerman\Worker;
@@ -66,7 +72,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 // Initialize logger
 $logger = new Logger('sni-proxy');
-$logger->pushHandler(new StreamHandler('php://stdout', Logger::DEBUG));
+$logger->pushHandler(new StreamHandler('php://stdout', Level::Debug));
 
 // Whitelist of allowed hosts (format: "hostname:port")
 $allowedHosts = [
@@ -84,9 +90,9 @@ $worker->count = 4;
 Worker::runAll();
 ```
 
-## API Documentation
+## Configuration
 
-### SniProxyWorker
+### SniProxyWorker Constructor
 
 ```php
 /**
@@ -101,6 +107,70 @@ public function __construct(
     array $remoteHosts = [],
     ?LoggerInterface $logger = null
 )
+```
+
+### Configuration Options
+
+- **bindHost**: The IP address to bind the proxy server (default: '0.0.0.0')
+- **bindPort**: The port to listen on (default: 443)
+- **remoteHosts**: Array of allowed destination hosts in "hostname:port" format
+- **logger**: PSR-3 compatible logger for debugging and monitoring
+
+## Advanced Usage
+
+### Custom Remote Target Resolution
+
+```php
+use Tourze\Workerman\SNIProxy\RemoteTarget;
+
+// Custom target resolution logic
+$worker = new SniProxyWorker('0.0.0.0', 8443);
+$worker->onConnect = function($connection) {
+    // Custom connection handling
+};
+```
+
+### Production Deployment
+
+```php
+// daemon.php
+<?php
+use Workerman\Worker;
+use Tourze\Workerman\SNIProxy\SniProxyWorker;
+
+require_once __DIR__ . '/vendor/autoload.php';
+
+// Run as daemon
+Worker::$daemonize = true;
+Worker::$pidFile = '/var/run/sni-proxy.pid';
+Worker::$logFile = '/var/log/sni-proxy.log';
+
+$worker = new SniProxyWorker('0.0.0.0', 443);
+$worker->count = 8; // 8 processes
+
+Worker::runAll();
+```
+
+### Monitoring and Metrics
+
+```php
+use Monolog\Handler\StreamHandler;
+use Monolog\Level;
+use Monolog\Logger;
+
+$logger = new Logger('sni-proxy');
+$logger->pushHandler(new StreamHandler('/var/log/sni-proxy.log', Level::Info));
+
+$worker = new SniProxyWorker('0.0.0.0', 8443, [], $logger);
+
+// Monitor connections
+$worker->onConnect = function($connection) use ($logger) {
+    $logger->info('New connection from ' . $connection->getRemoteIp());
+};
+
+$worker->onClose = function($connection) use ($logger) {
+    $logger->info('Connection closed from ' . $connection->getRemoteIp());
+};
 ```
 
 ## Use Cases
